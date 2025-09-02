@@ -1,0 +1,73 @@
+1. Sequelize is an ORM mapper which helps to map data in database with the data in application models.
+2. It is helpful to integrate with relational database.
+By using sequelize we can define models and use methods to query and manipulate data.
+It supports migration, validations, and associations.
+
+
+## Connection to Database
+
+To connect sequelize to database, we have to cfeate a sequelize instance. This can be achieved in three ways.
+
+const {Sequelize } = require('sequelize');
+
+//option-1 passing a connection URI
+const sequelize = new Sequelize('sqlite::memory')
+const sequelize = new Sequelize('postgres://user:pass@example.com:5432/dbname')
+
+//option-2
+const sequelize - new Sequelize({
+dialect: 'sqlite',
+storage: 'path/to/database.sqlite'
+});
+
+//option-3
+const sequelize = new Sequelize('database', 'username','password',{
+host: 'localhost',
+dialect: 'mysql'
+});
+
+
+##Logging 
+By default sequelize logs all query param it performed. By using options.logging option can be used to customize the behavior., by defining func that gets executed everytime the seq logs something. Default val is console.log and it shows first param.
+First param of log is raw query and second param is sequelize objects,
+
+Examples:- 
+1. logging: console.log, // Default, dispalys the first param of log function call
+2.logging: (...msg) => console.log(msg), // Displays all log functional call params
+3. logging : false, // disables logging
+4. logging : msg => logger.debug(msg), // use custom loger, displays first param
+
+
+// Example sequelize connection in RSD
+import { join } from 'node:path';
+import { Options}  from 'sequelize';
+import { Sequelize } from 'sequelize-typescript';
+import config from config;
+
+const {
+database,
+dialect,
+dialectOptions,
+host,
+logging,
+password,
+pool: {idle,min,max},
+port,
+username
+} : Options = config.get('databse');
+
+const sequelize = new Sequelize(datasbeName, username, password, {
+define: {
+underscored: false,
+},
+dialect,
+dialectOPtions: {
+multipleStatements: true,
+useUTC: true
+},
+host,
+logging: logging ? console.log : false,
+models: [ join(_dirname, 'models/**/*.model.{ts,js}')],
+pool: {idle,max,min},
+port,
+});
