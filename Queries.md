@@ -184,3 +184,136 @@ await User.destroy({
    truncate: true,
    });
 
+### Creating in bulk
+1. Method to create multiple records at once, with only one query
+```
+const captains = await Captain.bulkCreate([{name: 'jack Sparrow' }, {name: 'Davy Jones' }]);
+```
+
+### Ordering and Grouping
+1. Use order and group array which acts like ORDER BY and GROUP BY. Order option takes an array of items to order the query.
+2.  Customize ordering by
+```
+Users.findAll(
+order: [
+[`title`,`DESC`],
+[sequelize.fn(`max',sequelize.col('age'))], // will order by max age
+]
+)
+```
+3. Order Users by their tasks created At
+```
+// A User has many Tasks
+const User = sequelize.define('User', {
+  name: DataTypes.STRING,
+});
+
+// A Task belongs to a User and has many Subtasks
+const Task = sequelize.define('Task', {
+  title: DataTypes.STRING,
+});
+
+// A Task belongs to a Project
+const Project = sequelize.define('Project', {
+  name: DataTypes.STRING,
+});
+
+// A Subtask belongs to a Task
+const Subtask = sequelize.define('Subtask', {
+  name: DataTypes.STRING,
+});
+
+// Associations
+User.hasMany(Task);
+Task.belongsTo(User);
+
+Task.belongsTo(Project);
+Project.hasMany(Task);
+
+Task.hasMany(Subtask);
+Subtask.belongsTo(Task);
+```
+--- Query ---
+```
+(SELECT "Users".* 
+FROM "Users"
+LEFT JOIN "Tasks" ON "Users"."id" = "Tasks"."UserId"
+ORDER BY "Tasks"."createdAt" DESC;)
+
+const users = await User.findAll({
+  include: [Task],
+  order: [[Task, 'createdAt', 'DESC']]
+});
+```
+
+4. Order Users by their Tasks’ Project createdAt
+```
+const users = await User.findAll({
+  include: [{ model: Task, include: [Project] }],
+  order: [[Task, Project, 'createdAt', 'DESC']]
+});
+```
+```
+SELECT "Users".* 
+FROM "Users"
+LEFT JOIN "Tasks" ON "Users"."id" = "Tasks"."UserId"
+LEFT JOIN "Projects" ON "Tasks"."ProjectId" = "Projects"."id"
+ORDER BY "Projects"."createdAt" DESC;
+```
+
+5. Order Subtasks by their Task Created At
+```
+const subtasks = await Subtask.findAll({
+  include: [Task],
+  order: [[Subtask.associations.Task, 'createdAt', 'DESC']]
+});
+```
+```
+SELECT "Subtasks".* 
+FROM "Subtasks"
+LEFT JOIN "Tasks" ON "Subtasks"."TaskId" = "Tasks"."id"
+ORDER BY "Tasks"."createdAt" DESC;
+```
+
+6. Order Users by their Task's project CreatedAt
+   ```
+   const users = await Users.findAll({
+   include: [{model: Task, include: [Project]}],
+   order: [[Task,Project,'CreatedAt','DESC']]
+   })
+   ```
+   ```
+   SELECT "Users".*
+   FROM "Users"
+   LEFT JOIN "Taks" ON "Users"."id" = "Tasks"."userId"
+   LEFT JOIN "Projects" ON "Projects.TaskId" = "Project.id"
+   ORDER BY "Projects"."createdAt" DESC;
+
+7. Order Subtasks by their Task's CreatedAt
+   ```
+   const subtasks = await Subtask.findAll({
+   include: [Task],
+   order:[[SubTask.associations.Task,'createdAt','DESC']]
+   });
+   ```
+   ```
+   SELECT "Subtasks".*
+   FROM "Subtasks"
+   LEFT JOIN "TASKS" ON "Subtasks"."TaskId" = "Tasks"."id"
+   ORDER BY "TASKS"."CreatedAt" DESC;
+   
+### Grouping
+```
+project.findAll({group: 'name' });
+
+### Limits and Pagination
+
+```
+// fetch 10 instances/rows
+Project.findAll({ limit: 10 });
+
+// Skip 8 instances / rows
+Project.findAll({ offset: 8 })
+
+// Skip 5 instances and fetch the 5 after that
+Project.findAll({offset: 5, limit: 5 })
